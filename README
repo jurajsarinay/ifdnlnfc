@@ -1,0 +1,31 @@
+ifdnlnfc is an experimental IFD Handler exposing Linux NFC devices to PCSC lite
+
+https://docs.kernel.org/networking/nfc.html
+https://pcsclite.apdu.fr/api/group__IFDHandler.html
+
+Prerequisities
+==============
+
+PCSC lite
+https://pcsclite.apdu.fr/
+
+Netlink Protocol Library Suite
+https://www.infradead.org/~tgr/libnl/
+
+On Debian, install
+pcscd libpcsclite-dev libnl-3-dev libnl-genl-3-dev
+
+Usage
+=====
+
+configure pcscd to load libnlnfc.so
+(man reader.conf)
+
+CHANNELID should be set to the index of your nfc adapter, the numbering starts at 0.
+Use nfctool from https://github.com/linux-nfc/neard to list available adapters.
+
+Example /etc/reader.conf.d/libnlnfc:
+
+FRIENDLYNAME "Linux NFC Reader"
+LIBPATH /usr/local/lib/libnlnfc.so
+CHANNELID 0

@@ -185,6 +185,7 @@ static int set_atr_from_hb(struct nfc_target *target, unsigned char * hb, int hb
 	if (len + 1 > MAX_ATR_SIZE) {
 		/* should never happen */
 		Log1(PCSC_LOG_ERROR, "Too many historical bytes.");
+		target->atr_len = 0;
 		return -1;
 	}
 

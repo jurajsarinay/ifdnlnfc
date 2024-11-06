@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/nix/store/*-pcsclite-*-dev/include/PCSC",
+                "/nix/store/*-libnl-*-dev/include/libnl3"
+            ],
+            "defines": [ ]
+        }
+    ],
+    "version": 4
+}

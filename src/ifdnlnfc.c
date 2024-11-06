@@ -38,6 +38,7 @@
 #include <netlink/genl/genl.h>
 #include <netlink/handlers.h>
 #include <netlink/netlink.h>
+#include <poll.h>
 #include <sys/uio.h>
 #include <unistd.h>
 
@@ -838,6 +839,16 @@ IFDHCloseChannel(DWORD Lun)
 	return IFD_SUCCESS;
 }
 
+static RESPONSECODE IFDHPolling(DWORD Lun, int timeout)
+{
+	struct pollfd fd = {nl_socket_get_fd(event_sock), POLLIN, 0};
+
+	if (poll(&fd, 1, timeout) < 0)
+		return IFD_COMMUNICATION_ERROR;
+
+	return IFD_SUCCESS;
+}
+
 RESPONSECODE
 IFDHGetCapabilities(DWORD Lun, DWORD Tag, PDWORD Length, PUCHAR Value)
 {
@@ -870,6 +881,14 @@ IFDHGetCapabilities(DWORD Lun, DWORD Tag, PDWORD Length, PUCHAR Value)
 	case TAG_IFD_SLOTS_NUMBER:
 		*Value  = 1;
 		*Length = 1;
+		break;
+	case TAG_IFD_POLLING_THREAD_WITH_TIMEOUT:
+		*Length = sizeof(void *);
+		*(void **)Value = IFDHPolling;
+		break;
+	case TAG_IFD_POLLING_THREAD_KILLABLE:
+		*Length = 1;
+		*Value = 1;
 		break;
 	default:
 		Log2(PCSC_LOG_DEBUG, "Tag %08lx not supported", Tag);

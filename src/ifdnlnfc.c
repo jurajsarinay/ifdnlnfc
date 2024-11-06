@@ -465,18 +465,17 @@ static int get_device_handler(struct nl_msg *n, void *arg)
 		rf_mode =  nla_get_u8(attrs[NFC_ATTR_RF_MODE]);
         }
 
-        if (attrs[NFC_ATTR_PROTOCOLS])
-	{
-                protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
-		if (protocols & (NFC_PROTO_ISO14443_MASK | NFC_PROTO_ISO14443_B_MASK)) {
-			state->found = 1;
-			state->adapter->idx = state->idx;
-			state->adapter->initial_mode = rf_mode;
-			state->adapter->initial_power = powered;
+        if (!attrs[NFC_ATTR_PROTOCOLS])
+		return NL_SKIP;
 
-			Log4(PCSC_LOG_INFO, "NFC adapter found. Index: %d, powered: %d, supported protocols: %0x.", state->adapter->idx, powered, protocols);
-
-		}
+	protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
+	if (protocols & (NFC_PROTO_ISO14443_MASK | NFC_PROTO_ISO14443_B_MASK)) {
+		state->found = 1;
+		state->adapter->idx = state->idx;
+		state->adapter->initial_mode = rf_mode;
+		state->adapter->initial_power = powered;
+		Log4(PCSC_LOG_INFO, "NFC adapter found. Index: %d, powered: %d, supported protocols: %0x.", state->adapter->idx, powered, protocols);
+		return NL_OK;
 	}
 
         return NL_SKIP;
@@ -498,9 +497,8 @@ static int list_devices_handler(struct nl_msg *n, void *arg)
 
 	if (!attrs[NFC_ATTR_DEVICE_NAME] || nla_strcmp(attrs[NFC_ATTR_DEVICE_NAME], state->name)) return NL_SKIP;
 
-        if (!attrs[NFC_ATTR_DEVICE_INDEX]) {
-                return NL_STOP;
-        }
+        if (!attrs[NFC_ATTR_DEVICE_INDEX] || !attrs[NFC_ATTR_PROTOCOLS])
+		return NL_SKIP;
 
         if (attrs[NFC_ATTR_DEVICE_POWERED]) {
 		powered =  nla_get_u8(attrs[NFC_ATTR_DEVICE_POWERED]);
@@ -510,20 +508,14 @@ static int list_devices_handler(struct nl_msg *n, void *arg)
 		rf_mode =  nla_get_u8(attrs[NFC_ATTR_RF_MODE]);
         }
 
-        if (attrs[NFC_ATTR_PROTOCOLS])
-	{
-                protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
-		if (protocols & (NFC_PROTO_ISO14443_MASK | NFC_PROTO_ISO14443_B_MASK)) {
-			state->found = 1;
-			state->adapter->idx = nla_get_u32(attrs[NFC_ATTR_DEVICE_INDEX]);
-			state->adapter->initial_mode = rf_mode;
-			state->adapter->initial_power = powered;
-
-			Log5(PCSC_LOG_INFO, "NFC adapter found. Name: %s, Index: %d, powered: %d, supported protocols: %0x.", state->name, state->adapter->idx, powered, protocols);
-
-		}
+	protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
+	if (protocols & (NFC_PROTO_ISO14443_MASK | NFC_PROTO_ISO14443_B_MASK)) {
+		state->found = 1;
+		state->adapter->idx = nla_get_u32(attrs[NFC_ATTR_DEVICE_INDEX]);
+		state->adapter->initial_mode = rf_mode;
+		state->adapter->initial_power = powered;
+		Log5(PCSC_LOG_INFO, "NFC adapter found. Name: %s, Index: %d, powered: %d, supported protocols: %0x.", state->name, state->adapter->idx, powered, protocols);
 	}
-
         return NL_SKIP;
 }
 
@@ -767,7 +759,7 @@ static int connect_target(struct nfc_adapter *adapter, struct nfc_target *target
 		return -1;
 
 	err = connect(fd, (struct sockaddr *) &sa, sizeof(sa));
-	if (!err){
+	if (!err) {
 		ifdnlnfc_state.socket = fd;
 		target->active_protocol = protocol;
 		Log3(PCSC_LOG_DEBUG, "Connected to NFC target. Index: %d, Protocol: %0x.", target->idx, protocol);
@@ -911,7 +903,7 @@ IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr, PDWORD AtrLength)
 
 	case IFD_RESET:
 		Log1(PCSC_LOG_DEBUG, "IFD_RESET");
-		if (ifdnlnfc_state.socket){
+		if (ifdnlnfc_state.socket) {
 			if (!nl_reactivate_target(ifdnlnfc_state.adapter.idx, ifdnlnfc_state.target.idx, ifdnlnfc_state.target.active_protocol) && *AtrLength < ifdnlnfc_state.target.atr_len) {
 				*AtrLength = ifdnlnfc_state.target.atr_len;
 				memcpy(Atr, &ifdnlnfc_state.target.atr, *AtrLength);
@@ -924,7 +916,6 @@ IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr, PDWORD AtrLength)
 		}
 		//break;
 		Log1(PCSC_LOG_DEBUG, "falling through");
-
 
 	case IFD_POWER_UP:
 		Log1(PCSC_LOG_DEBUG, "IFD_POWER_UP");
@@ -1016,7 +1007,8 @@ IFDHICCPresence(DWORD Lun)
 
 	if (ifdnlnfc_state.card_present)
 		return IFD_SUCCESS;
-	else if (!ifdnlnfc_state.adapter.poll_active) {
+
+	if (!ifdnlnfc_state.adapter.poll_active) {
 		poll_for_targets(&ifdnlnfc_state.adapter);
 	}
 
@@ -1026,10 +1018,9 @@ IFDHICCPresence(DWORD Lun)
 	{
 		if (!list_targets(&ifdnlnfc_state.adapter, &ifdnlnfc_state.target))
 			return IFD_SUCCESS;
-		else {
-			ifdnlnfc_state.card_present = 0;
-			return IFD_COMMUNICATION_ERROR;
-		}
+
+		ifdnlnfc_state.card_present = 0;
+		return IFD_COMMUNICATION_ERROR;
 	}
 	return IFD_ICC_NOT_PRESENT;
 }

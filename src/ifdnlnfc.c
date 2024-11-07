@@ -57,18 +57,14 @@ static int nl_error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
 static int nl_finish_handler(struct nl_msg *msg, void *arg)
 {
 	int *ret = arg;
-
 	*ret = 1;
-
 	return NL_SKIP;
 }
 
 static int nl_ack_handler(struct nl_msg *msg, void *arg)
 {
 	int *ret = arg;
-
 	*ret = 1;
-
 	return NL_SKIP;
 }
 
@@ -118,10 +114,7 @@ static int nl_set_powered(struct nfc_adapter * adapter, int powered)
 	if (!msg)
 		return -ENOMEM;
 
-	if (powered)
-		cmd = NFC_CMD_DEV_UP;
-	else
-		cmd = NFC_CMD_DEV_DOWN;
+	cmd = powered ? NFC_CMD_DEV_UP : NFC_CMD_DEV_DOWN;
 
 	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_REQUEST, cmd, NFC_GENL_VERSION);
@@ -478,7 +471,6 @@ static int get_device_handler(struct nl_msg *n, void *arg)
 		Log4(PCSC_LOG_INFO, "NFC adapter found. Index: %d, powered: %d, supported protocols: %0x.", state->adapter->idx, powered, protocols);
 		return NL_OK;
 	}
-
         return NL_SKIP;
 }
 
@@ -565,7 +557,7 @@ static int stop_poll_for_targets(struct nfc_adapter * adapter)
         int err = -EINVAL;
 
 	if (!adapter->poll_active) {
-		Log2(PCSC_LOG_ERROR, "Poll not active, nothing to stop. Adapter index: %d.", adapter->idx);
+		Log2(PCSC_LOG_INFO, "Poll not active, nothing to stop. Adapter index: %d.", adapter->idx);
 		return 0;
 	}
 
@@ -773,6 +765,20 @@ static int connect_target(struct nfc_adapter *adapter, struct nfc_target *target
 	return err;
 }
 
+static int initialize_adapter(struct nfc_adapter *adapter)
+{
+	if (adapter->initial_mode != NFC_RF_NONE ||
+		(adapter->initial_power && nl_set_powered(adapter, 0))) {
+		Log1(PCSC_LOG_ERROR, "Adapter busy");
+		return -1;
+	}
+
+	if (!nl_set_powered(adapter, 1) && poll_for_targets(adapter)) {
+		return -1;
+	}
+	return 0;
+}
+
 RESPONSECODE
 IFDHCreateChannelByName(DWORD Lun, LPSTR DeviceName)
 {
@@ -782,39 +788,35 @@ IFDHCreateChannelByName(DWORD Lun, LPSTR DeviceName)
 	if (get_adapter_by_name(DeviceName, &ifdnlnfc_state.adapter)) {
 		netlink_cleanup();
 		return IFD_NO_SUCH_DEVICE;
+        }
+
+	if (!initialize_adapter(&ifdnlnfc_state.adapter)) {
+		ifdnlnfc_state.channel_open = 1;
+		return IFD_SUCCESS;
 	}
 
-	if ((ifdnlnfc_state.adapter.initial_power || !nl_set_powered(&ifdnlnfc_state.adapter, 1)) && poll_for_targets(&ifdnlnfc_state.adapter)) {
-		netlink_cleanup();
-		return IFD_COMMUNICATION_ERROR;
-	}
-
-	ifdnlnfc_state.channel_open = 1;
-
-	return IFD_SUCCESS;
+	netlink_cleanup();
+	return IFD_COMMUNICATION_ERROR;
 }
 
 RESPONSECODE
 IFDHCreateChannel(DWORD Lun, DWORD Channel)
 {
-
 	if (ifdnlnfc_state.channel_open || netlink_setup())
 		return IFD_COMMUNICATION_ERROR;
 
-	if (get_adapter_by_idx(Channel, &ifdnlnfc_state.adapter))
-	{
+	if (get_adapter_by_idx(Channel, &ifdnlnfc_state.adapter)) {
 		netlink_cleanup();
 		return IFD_NO_SUCH_DEVICE;
 	}
 
-	if ((ifdnlnfc_state.adapter.initial_power || !nl_set_powered(&ifdnlnfc_state.adapter, 1)) && poll_for_targets(&ifdnlnfc_state.adapter)) {
-		netlink_cleanup();
-		return IFD_COMMUNICATION_ERROR;
+	if (!initialize_adapter(&ifdnlnfc_state.adapter)) {
+		ifdnlnfc_state.channel_open = 1;
+		return IFD_SUCCESS;
 	}
 
-	ifdnlnfc_state.channel_open = 1;
-
-	return IFD_SUCCESS;
+	netlink_cleanup();
+	return IFD_COMMUNICATION_ERROR;
 }
 
 RESPONSECODE

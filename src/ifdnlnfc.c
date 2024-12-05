@@ -925,7 +925,7 @@ IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr, PDWORD AtrLength)
 	case IFD_RESET:
 		Log1(PCSC_LOG_DEBUG, "IFD_RESET");
 		if (ifdnlnfc_state.socket) {
-			if (!nl_reactivate_target(ifdnlnfc_state.adapter.idx, ifdnlnfc_state.target.idx, ifdnlnfc_state.target.active_protocol) && *AtrLength < ifdnlnfc_state.target.atr_len) {
+			if (!nl_reactivate_target(ifdnlnfc_state.adapter.idx, ifdnlnfc_state.target.idx, ifdnlnfc_state.target.active_protocol) && *AtrLength >= ifdnlnfc_state.target.atr_len) {
 				*AtrLength = ifdnlnfc_state.target.atr_len;
 				memcpy(Atr, &ifdnlnfc_state.target.atr, *AtrLength);
 				return IFD_SUCCESS;

@@ -469,6 +469,7 @@ static int get_device_handler(struct nl_msg *n, void *arg)
 		state->adapter->initial_mode = rf_mode;
 		state->adapter->initial_power = powered;
 		Log4(PCSC_LOG_INFO, "NFC adapter found. Index: %d, powered: %d, supported protocols: %0x.", state->adapter->idx, powered, protocols);
+		Log2(PCSC_LOG_DEBUG, "Adapter Mode: %d", rf_mode);
 		return NL_OK;
 	}
 	return NL_SKIP;
@@ -508,6 +509,7 @@ static int list_devices_handler(struct nl_msg *n, void *arg)
 		state->adapter->initial_mode = rf_mode;
 		state->adapter->initial_power = powered;
 		Log5(PCSC_LOG_INFO, "NFC adapter found. Name: %s, Index: %d, powered: %d, supported protocols: %0x.", state->name, state->adapter->idx, powered, protocols);
+		Log2(PCSC_LOG_DEBUG, "Adapter Mode: %d", rf_mode);
 	}
 	return NL_SKIP;
 }
@@ -767,7 +769,7 @@ static int connect_target(struct nfc_adapter *adapter, struct nfc_target *target
 
 static int initialize_adapter(struct nfc_adapter *adapter)
 {
-	if (adapter->initial_mode != NFC_RF_NONE ||
+	if (adapter->initial_mode == NFC_RF_TARGET ||
 		(adapter->initial_power && nl_set_powered(adapter, 0))) {
 		Log1(PCSC_LOG_ERROR, "Adapter busy");
 		return -1;

@@ -39,12 +39,16 @@
 #include <netlink/handlers.h>
 #include <netlink/netlink.h>
 #include <poll.h>
+#include <pthread.h>
 #include <sys/uio.h>
 #include <unistd.h>
 
 static struct nl_sock *cmd_sock, *event_sock;
 static int nfc_family_id;
 static struct ifdnlnfc_state ifdnlnfc_state = {};
+
+pthread_cond_t target_lost = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t polling_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int nl_error_handler(struct sockaddr_nl *nla, struct nlmsgerr *err,
 			void *arg)
@@ -733,6 +737,13 @@ static int netlink_setup()
 	return err;
 }
 
+static void remove_target() {
+	if (ifdnlnfc_state.socket) close(ifdnlnfc_state.socket);
+	ifdnlnfc_state.socket = 0;
+	ifdnlnfc_state.card_present = 0;
+	pthread_cond_signal(&target_lost);
+}
+
 static int connect_target(struct nfc_adapter *adapter, struct nfc_target *target)
 {
 	int err;
@@ -845,12 +856,27 @@ IFDHCloseChannel(DWORD Lun)
 
 static RESPONSECODE IFDHPolling(DWORD Lun, int timeout)
 {
+	struct timespec deadline;
 	struct pollfd fd = {nl_socket_get_fd(event_sock), POLLIN, 0};
+	Log4(PCSC_LOG_DEBUG, "card present: %d, poll active: %d, timeout: %d", ifdnlnfc_state.card_present, ifdnlnfc_state.adapter.poll_active, timeout);
 
-	if (poll(&fd, 1, timeout) < 0)
-		return IFD_COMMUNICATION_ERROR;
+	if (ifdnlnfc_state.card_present && !clock_gettime(CLOCK_REALTIME, &deadline)) {
+		deadline.tv_nsec += (timeout % 1000) * 1000000;
+		deadline.tv_sec += timeout / 1000;
+		if (deadline.tv_nsec > 999999999) {
+			deadline.tv_nsec -= 1000000000;
+			deadline.tv_sec += 1;
+		}
+		pthread_mutex_lock(&polling_lock);
+		if (!pthread_cond_timedwait(&target_lost, &polling_lock, &deadline))
+			Log1(PCSC_LOG_DEBUG, "Target gone, polling thread woken up.");
+		pthread_mutex_unlock(&polling_lock);
+		return IFD_SUCCESS;
+	}
+	else if (poll(&fd, 1, timeout) != -1)
+		return IFD_SUCCESS;
 
-	return IFD_SUCCESS;
+	return IFD_COMMUNICATION_ERROR;
 }
 
 RESPONSECODE
@@ -956,11 +982,8 @@ IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr, PDWORD AtrLength)
 
 	case IFD_POWER_DOWN:
 		Log1(PCSC_LOG_DEBUG, "IFD_POWER_DOWN");
-		if (ifdnlnfc_state.socket)
-			close(ifdnlnfc_state.socket);
 		*AtrLength = 0;
-		ifdnlnfc_state.socket = 0;
-		ifdnlnfc_state.card_present = 0;
+		remove_target();
 		return IFD_SUCCESS;
 	default:
 		;
@@ -991,10 +1014,8 @@ IFDHTransmitToICC(DWORD Lun, SCARD_IO_HEADER SendPci, PUCHAR TxBuffer, DWORD
 	if (bytes_written != TxLength) {
 		Log3(PCSC_LOG_DEBUG, "Wrote %d bytes instead of %ld", bytes_written, TxLength);
 		*RxLength = 0;
-		ifdnlnfc_state.card_present = 0;
-		close(ifdnlnfc_state.socket);
-		ifdnlnfc_state.socket = 0;
-		return IFD_COMMUNICATION_ERROR;
+		remove_target();
+		return IFD_ICC_NOT_PRESENT;
 	}
 
 	bytes_read = readv(ifdnlnfc_state.socket, iov, 2);
@@ -1006,10 +1027,8 @@ IFDHTransmitToICC(DWORD Lun, SCARD_IO_HEADER SendPci, PUCHAR TxBuffer, DWORD
 	if (bytes_read < 1)
 	{
 		*RxLength = 0;
-		ifdnlnfc_state.card_present = 0;
-		close(ifdnlnfc_state.socket);
-		ifdnlnfc_state.socket = 0;
-		return IFD_COMMUNICATION_ERROR;
+		remove_target();
+		return IFD_ICC_NOT_PRESENT;
 	}
 
 	bytes_read--;

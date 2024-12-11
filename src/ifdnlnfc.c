@@ -203,16 +203,16 @@ static int set_atr_from_hb(struct nfc_target *target, unsigned char * hb, int hb
 
 static int get_targets_handler(struct nl_msg *msg, void *arg)
 {
-        struct nlmsghdr *nlh = nlmsg_hdr(msg);
-        struct nlattr *attrs[NFC_ATTR_MAX + 1];
+	struct nlmsghdr *nlh = nlmsg_hdr(msg);
+	struct nlattr *attrs[NFC_ATTR_MAX + 1];
 
 	struct list_targets_cb_state *state = arg;
 
 	unsigned char hb[8];
 
-        genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
+	genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
 
-        if (!attrs[NFC_ATTR_TARGET_INDEX] || !attrs[NFC_ATTR_PROTOCOLS]) {
+	if (!attrs[NFC_ATTR_TARGET_INDEX] || !attrs[NFC_ATTR_PROTOCOLS]) {
 		return NL_SKIP;
 	}
 
@@ -225,7 +225,7 @@ static int get_targets_handler(struct nl_msg *msg, void *arg)
 	}
 
 	state->target->idx = nla_get_u32(attrs[NFC_ATTR_TARGET_INDEX]);
-        state->target->supported_protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
+	state->target->supported_protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
 
 	Log3(PCSC_LOG_INFO, "NFC target found. Index: %d, supported protocols: %0x.", state->target->idx, state->target->supported_protocols);
 
@@ -248,8 +248,8 @@ static int get_targets_handler(struct nl_msg *msg, void *arg)
 
 static int get_target_ats_handler(struct nl_msg *msg, void *arg)
 {
-        struct nlmsghdr *nlh = nlmsg_hdr(msg);
-        struct nlattr *attrs[NFC_ATTR_MAX + 1];
+	struct nlmsghdr *nlh = nlmsg_hdr(msg);
+	struct nlattr *attrs[NFC_ATTR_MAX + 1];
 	int hb_len = 0;
 	unsigned char * hb = NULL;
 
@@ -258,7 +258,7 @@ static int get_target_ats_handler(struct nl_msg *msg, void *arg)
 
 	struct list_targets_cb_state *state = arg;
 
-        genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
+	genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
 
 	if (state->found || !attrs[NFC_ATTR_TARGET_INDEX] || state->target->idx != nla_get_u32(attrs[NFC_ATTR_TARGET_INDEX]))
 		return NL_SKIP;
@@ -288,27 +288,27 @@ static int get_target_ats_handler(struct nl_msg *msg, void *arg)
 
 	set_atr_from_hb(state->target, hb, hb_len);
 
-        return NL_OK;
+	return NL_OK;
 }
 
 static int list_targets(struct nfc_adapter * adapter, struct nfc_target *result)
 {
-        struct nl_msg *msg;
-        void *hdr;
+	struct nl_msg *msg;
+	void *hdr;
 	int err = -1;
 
 	struct list_targets_cb_state state = {0, result};
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_DUMP, NFC_CMD_GET_TARGET, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	NLA_PUT_U32(msg, NFC_ATTR_DEVICE_INDEX, adapter->idx);
 
@@ -324,22 +324,22 @@ nla_put_failure:
 
 static int get_target_ats(struct nfc_adapter * adapter, struct nfc_target * target)
 {
-        struct nl_msg *msg;
-        void *hdr;
+	struct nl_msg *msg;
+	void *hdr;
 	int err = -ENOENT;
 
 	struct list_targets_cb_state state = {0, target};
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_DUMP, NFC_CMD_GET_TARGET, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	NLA_PUT_U32(msg, NFC_ATTR_DEVICE_INDEX, adapter->idx);
 
@@ -358,7 +358,7 @@ nla_put_failure:
 static int event_handler(struct nl_msg *msg, void *arg)
 {
 	struct nlattr *attr[NFC_ATTR_MAX + 1];
-        struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 	uint32_t cmd = gnlh->cmd;
 	int * card_present = arg;
 	uint32_t device_index;
@@ -384,54 +384,54 @@ static int event_handler(struct nl_msg *msg, void *arg)
 
 static int family_handler(struct nl_msg *msg, void *arg)
 {
-        int *group_id = arg;
-        struct nlattr *tb[CTRL_ATTR_MAX + 1];
-        struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
-        struct nlattr *mcgrp;
-        int rem_mcgrp;
+	int *group_id = arg;
+	struct nlattr *tb[CTRL_ATTR_MAX + 1];
+	struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+	struct nlattr *mcgrp;
+	int rem_mcgrp;
 
-        nla_parse(tb, CTRL_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
+	nla_parse(tb, CTRL_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
 		genlmsg_attrlen(gnlh, 0), NULL);
 
-        if (!tb[CTRL_ATTR_MCAST_GROUPS])
-                return NL_SKIP;
+	if (!tb[CTRL_ATTR_MCAST_GROUPS])
+		return NL_SKIP;
 
-        nla_for_each_nested(mcgrp, tb[CTRL_ATTR_MCAST_GROUPS], rem_mcgrp) {
-                struct nlattr *tb_mcgrp[CTRL_ATTR_MCAST_GRP_MAX + 1];
+	nla_for_each_nested(mcgrp, tb[CTRL_ATTR_MCAST_GROUPS], rem_mcgrp) {
+		struct nlattr *tb_mcgrp[CTRL_ATTR_MCAST_GRP_MAX + 1];
 
-                nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX,
+		nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX,
 			nla_data(mcgrp), nla_len(mcgrp), NULL);
 
-                if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] ||
+		if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] ||
 			!tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
-                        continue;
-                if (strncmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
+			continue;
+		if (strncmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
 				NFC_GENL_MCAST_EVENT_NAME,
 				nla_len(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME])))
-                        continue;
-                *group_id = nla_get_u32(tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID]);
+			continue;
+		*group_id = nla_get_u32(tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID]);
 		return NL_OK;
-        }
+	}
 
-        return NL_SKIP;
+	return NL_SKIP;
 }
 
 static int get_multicast_id(struct nl_sock *sock, int *group_id)
 {
-        struct nl_msg *msg;
-        int err = -EINVAL;
+	struct nl_msg *msg;
+	int err = -EINVAL;
 	int ctrlid;
 
-        msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	msg = nlmsg_alloc();
+	if (!msg)
+		return -ENOMEM;
 
-        ctrlid = genl_ctrl_resolve(sock, "nlctrl");
+	ctrlid = genl_ctrl_resolve(sock, "nlctrl");
 
-        genlmsg_put(msg, 0, 0, ctrlid, 0,
+	genlmsg_put(msg, 0, 0, ctrlid, 0,
 		0, CTRL_CMD_GETFAMILY, 0);
 
-        NLA_PUT_STRING(msg, CTRL_ATTR_FAMILY_NAME, NFC_GENL_NAME);
+	NLA_PUT_STRING(msg, CTRL_ATTR_FAMILY_NAME, NFC_GENL_NAME);
 
 	err = nl_send_msg(sock, msg, family_handler, group_id);
 
@@ -444,22 +444,22 @@ static int get_device_handler(struct nl_msg *n, void *arg)
 {
 	struct nlmsghdr *nlh = nlmsg_hdr(n);
 	struct nlattr *attrs[NFC_ATTR_MAX + 1];
-        uint32_t protocols = 0;
-        uint8_t powered, rf_mode;
+	uint32_t protocols = 0;
+	uint8_t powered, rf_mode;
 
 	struct get_adapter_cb_state *state = arg;
 
-        genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
+	genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
 
-        if (attrs[NFC_ATTR_DEVICE_POWERED]) {
+	if (attrs[NFC_ATTR_DEVICE_POWERED]) {
 		powered = nla_get_u8(attrs[NFC_ATTR_DEVICE_POWERED]);
 	}
 
 	if (attrs[NFC_ATTR_RF_MODE]) {
 		rf_mode =  nla_get_u8(attrs[NFC_ATTR_RF_MODE]);
-        }
+	}
 
-        if (!attrs[NFC_ATTR_PROTOCOLS])
+	if (!attrs[NFC_ATTR_PROTOCOLS])
 		return NL_SKIP;
 
 	protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
@@ -471,35 +471,35 @@ static int get_device_handler(struct nl_msg *n, void *arg)
 		Log4(PCSC_LOG_INFO, "NFC adapter found. Index: %d, powered: %d, supported protocols: %0x.", state->adapter->idx, powered, protocols);
 		return NL_OK;
 	}
-        return NL_SKIP;
+	return NL_SKIP;
 }
 
 static int list_devices_handler(struct nl_msg *n, void *arg)
 {
 	struct nlmsghdr *nlh = nlmsg_hdr(n);
 	struct nlattr *attrs[NFC_ATTR_MAX + 1];
-        uint32_t protocols = 0;
-        uint8_t powered, rf_mode;
+	uint32_t protocols = 0;
+	uint8_t powered, rf_mode;
 
 	struct list_adapters_cb_state * state = arg;
 
 	if (state->found)
 		return NL_SKIP;
 
-        genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
+	genlmsg_parse(nlh, 0, attrs, NFC_ATTR_MAX, NULL);
 
 	if (!attrs[NFC_ATTR_DEVICE_NAME] || nla_strcmp(attrs[NFC_ATTR_DEVICE_NAME], state->name)) return NL_SKIP;
 
-        if (!attrs[NFC_ATTR_DEVICE_INDEX] || !attrs[NFC_ATTR_PROTOCOLS])
+	if (!attrs[NFC_ATTR_DEVICE_INDEX] || !attrs[NFC_ATTR_PROTOCOLS])
 		return NL_SKIP;
 
-        if (attrs[NFC_ATTR_DEVICE_POWERED]) {
+	if (attrs[NFC_ATTR_DEVICE_POWERED]) {
 		powered =  nla_get_u8(attrs[NFC_ATTR_DEVICE_POWERED]);
 	}
 
 	if (attrs[NFC_ATTR_RF_MODE]) {
 		rf_mode =  nla_get_u8(attrs[NFC_ATTR_RF_MODE]);
-        }
+	}
 
 	protocols = nla_get_u32(attrs[NFC_ATTR_PROTOCOLS]);
 	if (protocols & (NFC_PROTO_ISO14443_MASK | NFC_PROTO_ISO14443_B_MASK)) {
@@ -509,14 +509,14 @@ static int list_devices_handler(struct nl_msg *n, void *arg)
 		state->adapter->initial_power = powered;
 		Log5(PCSC_LOG_INFO, "NFC adapter found. Name: %s, Index: %d, powered: %d, supported protocols: %0x.", state->name, state->adapter->idx, powered, protocols);
 	}
-        return NL_SKIP;
+	return NL_SKIP;
 }
 
 static int poll_for_targets(struct nfc_adapter * adapter)
 {
 	struct nl_msg *msg;
-        void *hdr;
-        int err = -EINVAL;
+	void *hdr;
+	int err = -EINVAL;
 
 	if (ifdnlnfc_state.adapter.poll_active) {
 		Log2(PCSC_LOG_ERROR, "Poll active, not starting. Adapter index: %d.", adapter->idx);
@@ -524,15 +524,15 @@ static int poll_for_targets(struct nfc_adapter * adapter)
 	}
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_REQUEST, NFC_CMD_START_POLL, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	NLA_PUT_U32(msg, NFC_ATTR_DEVICE_INDEX, adapter->idx);
 	NLA_PUT_U32(msg, NFC_ATTR_IM_PROTOCOLS, NFC_PROTO_ISO14443_MASK |  NFC_PROTO_ISO14443_B_MASK);
@@ -553,8 +553,8 @@ nla_put_failure:
 static int stop_poll_for_targets(struct nfc_adapter * adapter)
 {
 	struct nl_msg *msg;
-        void *hdr;
-        int err = -EINVAL;
+	void *hdr;
+	int err = -EINVAL;
 
 	if (!adapter->poll_active) {
 		Log2(PCSC_LOG_INFO, "Poll not active, nothing to stop. Adapter index: %d.", adapter->idx);
@@ -562,15 +562,15 @@ static int stop_poll_for_targets(struct nfc_adapter * adapter)
 	}
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_REQUEST, NFC_CMD_STOP_POLL, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	NLA_PUT_U32(msg, NFC_ATTR_DEVICE_INDEX, adapter->idx);
 
@@ -589,21 +589,21 @@ nla_put_failure:
 static int get_adapter_by_idx(uint32_t idx, struct nfc_adapter *adapter)
 {
 	struct nl_msg *msg;
-        void *hdr;
-        int err = -EINVAL;
+	void *hdr;
+	int err = -EINVAL;
 
 	struct get_adapter_cb_state state = {idx, 0, adapter};
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_REQUEST, NFC_CMD_GET_DEVICE, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	NLA_PUT_U32(msg, NFC_ATTR_DEVICE_INDEX, idx);
 
@@ -625,21 +625,21 @@ nla_put_failure:
 static int get_adapter_by_name(const char * adapter_name, struct nfc_adapter * adapter)
 {
 	struct nl_msg *msg;
-        void *hdr;
-        int err = 0;
+	void *hdr;
+	int err = 0;
 
 	struct list_adapters_cb_state state = {adapter_name, 0, adapter};
 
 	msg = nlmsg_alloc();
-        if (!msg)
-                return -ENOMEM;
+	if (!msg)
+		return -ENOMEM;
 
-        hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
+	hdr = genlmsg_put(msg, NL_AUTO_PID, NL_AUTO_SEQ, nfc_family_id, 0,
 			NLM_F_DUMP, NFC_CMD_GET_DEVICE, NFC_GENL_VERSION);
-        if (!hdr) {
-                err = -EINVAL;
-                goto nla_put_failure;
-        }
+	if (!hdr) {
+		err = -EINVAL;
+		goto nla_put_failure;
+	}
 
 	err = nl_send_msg(cmd_sock, msg, list_devices_handler, &state);
 
@@ -666,7 +666,7 @@ static int netlink_setup()
 {
 	int err, group_id;
 
-        cmd_sock = nl_socket_alloc();
+	cmd_sock = nl_socket_alloc();
 
 	if (!cmd_sock) {
 		Log1(PCSC_LOG_ERROR, "Out of memory");
@@ -700,10 +700,10 @@ static int netlink_setup()
 	}
 
 	nfc_family_id = genl_ctrl_resolve(cmd_sock, "nfc");
-        if (nfc_family_id < 0) {
+	if (nfc_family_id < 0) {
 		Log1(PCSC_LOG_DEBUG, "Unable to find NFC netlink family");
-                err = -ENOENT;
-        }
+		err = -ENOENT;
+	}
 
 	err = get_multicast_id(cmd_sock, &group_id);
 
@@ -788,7 +788,7 @@ IFDHCreateChannelByName(DWORD Lun, LPSTR DeviceName)
 	if (get_adapter_by_name(DeviceName, &ifdnlnfc_state.adapter)) {
 		netlink_cleanup();
 		return IFD_NO_SUCH_DEVICE;
-        }
+	}
 
 	if (!initialize_adapter(&ifdnlnfc_state.adapter)) {
 		ifdnlnfc_state.channel_open = 1;
@@ -877,11 +877,11 @@ IFDHGetCapabilities(DWORD Lun, DWORD Tag, PDWORD Length, PUCHAR Value)
 		*Length = 1;
 		break;
 	case TAG_IFD_THREAD_SAFE:
-		*Value  = 0;
+		*Value	= 0;
 		*Length = 1;
 		break;
 	case TAG_IFD_SLOTS_NUMBER:
-		*Value  = 1;
+		*Value	= 1;
 		*Length = 1;
 		break;
 	case TAG_IFD_POLLING_THREAD_WITH_TIMEOUT:
@@ -961,7 +961,7 @@ IFDHPowerICC(DWORD Lun, DWORD Action, PUCHAR Atr, PDWORD AtrLength)
 		ifdnlnfc_state.card_present = 0;
 		return IFD_SUCCESS;
 	default:
-	        ;
+		;
 	}
 	return IFD_NOT_SUPPORTED;
 }
